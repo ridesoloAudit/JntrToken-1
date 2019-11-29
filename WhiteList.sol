@@ -160,7 +160,7 @@ contract WhiteList is Ownable,SafeMath{
     }
     
     /**
-    * @dev function to set primary whiteList type allowed
+    * @dev function to set secondary whiteList type allowed
     * @param _whiteListType is array for type of account .
     * @param _isAlloweded is array for bool.
     */
