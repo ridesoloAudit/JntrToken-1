@@ -34,18 +34,9 @@ contract Token {
 
 contract JNTR is StandardToken,MultiOwnable{
     
-    string public name;
-    
-    string public symbol;
-    
-    uint public totalSupply = 0 ;
-    
-    uint public constant decimals = 18;
-    
     uint256 public tokenSaleStartDate = 0;
  
 
-    
     Utils util ;
     WhiteList whiteList;
     

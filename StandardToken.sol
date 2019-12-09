@@ -4,6 +4,14 @@ import './ERC20.sol';
 
 contract StandardToken is ERC20,SafeMath{
     
+    string public name;
+    
+    string public symbol;
+    
+    uint public totalSupply = 0 ;
+    
+    uint public constant decimals = 18;
+    
     mapping(address => uint256) balances;
     
     mapping (address => mapping (address => uint256)) allowed;
