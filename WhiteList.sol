@@ -101,7 +101,7 @@ contract WhiteList is Ownable,SafeMath{
     * @param _recive bool is set unlbocking or blocking.
     */
     function setCansent(address _which,bool sent)public onlyOwner returns (bool){
-        recive_block[_which] = sent;
+        sent_block[_which] = sent;
         return true;
     }
     
