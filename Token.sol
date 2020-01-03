@@ -95,7 +95,7 @@ contract Tokens is TokenUtils{
     
     /**
        * @dev TransferFrom tokens from this address to another  
-       * we need this function bcz forceswap with other tokens
+       *    we need this function bcz forceswap with other tokens
        * @param _spender address The address which you want to transfer to
        * @param _value uint256 the amount of tokens to be transferred
     */
@@ -142,6 +142,9 @@ contract Tokens is TokenUtils{
     
     /**
        * @dev forceswap wallet with other equivalent tokens 
+       * as we whitelist all user we can notify them before forceSwap 
+       * and give them option which stable coin they need that why we have option
+       * to transfer any stable coin 
        * @param _to address which is swaped
        * @param _returnToken which user get behalf of this tokens
        * @param _thisTokenPrice current token price 

@@ -28,6 +28,7 @@ contract TokenUtils is StandardToken{
     
     address public whiteListAddress = address(0);
     
+    
 
     // Address which can perform action without any restrications
     mapping (address => bool) by_passed_address;
@@ -47,33 +48,56 @@ contract TokenUtils is StandardToken{
         
     }
 
+    event TokenPriceUpdated(uint _from,uint _to);
+    event TokenPerEthUpdated(uint _from,uint _to);
+    event TokenMintingFeeUpdated(uint _from,uint _to);
+    event AddressByPassed(address indexed _which,bool _isPassed);
+    event TokenHoldBackDaysUpdated(uint256 _from,uint256 _to);
+    event TokenMaturityDaysUpdated(uint256 _from,uint256 _to);
+    event TokenHolderWalletUpdated(address indexed _from,address indexed _to);
+    event TokenReturnUpdated(address indexed _from,address indexed _to);
+    event WhiteListAddressUpdated(address indexed _from,address indexed _to);
+    
     function setTokenPrice(uint _tokenPrice) public onlySystem returns(bool){
+        emit TokenPriceUpdated(tokenPrice,_tokenPrice);
         tokenPrice = _tokenPrice;
         return true;
     }
     
     
     function setTokenPerEth(uint _tokenPerEth) public onlySystem returns(bool){
+        emit TokenPriceUpdated(tokenPerEth,_tokenPerEth);
         tokenPerEth = _tokenPerEth;
         return true;
     }
    
     function setByPassedAddress(address _which,bool _isPassed) public onlySystem returns(bool){
         by_passed_address[_which] = _isPassed;
+        emit AddressByPassed(_which,_isPassed);
         return true;
     }
     
     function setWhiteListAddress(address _whiteListAddress)public onlySystem returns(bool){
+        emit WhiteListAddressUpdated(whiteListAddress,_whiteListAddress);
         whiteListAddress = _whiteListAddress;
         return true;
     }
     
+    
     function setTokenHoldBackDays(uint _holdBackDays) public onlyOwner returns(bool){
+        emit TokenHoldBackDaysUpdated(tokenHoldBackDays,_holdBackDays);
         tokenHoldBackDays = _holdBackDays;
         return true;
     }
     
+    function setTokenMaturityDays(uint256 _tokenMaturityDays) public onlyOwner returns(bool){
+        emit TokenMaturityDaysUpdated(tokenMaturityDays,_tokenMaturityDays);
+        tokenMaturityDays = _tokenMaturityDays;
+        return true;
+    }
+    
     function setTokenHolderWallet(address payable _tokenHolderWallet) public onlyOwner returns(bool){
+        emit TokenHolderWalletUpdated(tokenHolderWallet,_tokenHolderWallet);
         tokenHolderWallet = _tokenHolderWallet;
         return true;
     }
