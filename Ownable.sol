@@ -1,43 +1,57 @@
 pragma solidity 0.5.9;
-/**
- * @title Ownable
- * @dev The Ownable contract has an owner address, and provides basic authorization control
- * functions, this simplifies the implementation of "user permissions".
- */
-contract Ownable {
+import './Constant.sol';
+
+contract Ownable is Constant{
     
-  address public owner;
+    address public primaryOwner = address(0);
+    address public systemAddress = address(0);
+    
 
+    /**
+    * @dev The Ownable constructor sets the `primaryOwner` and `systemAddress`
+    * account.
+    */
+    constructor(address _systemAddress) public notOwnAddress(_systemAddress) notZeroAddress(_systemAddress){
+        primaryOwner = msg.sender;
+        systemAddress = _systemAddress;
+    }
+    
+    event OwnershipTransferred(string ownerType,address indexed previousOwner, address indexed newOwner);
+    
+    
+    modifier onlyOwner() {
+        require(msg.sender == primaryOwner,ERR_ACTION_NOT_ALLOWED);
+        _;
+    }
 
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    modifier onlySystem() {
+        require(msg.sender == primaryOwner || msg.sender == systemAddress,ERR_ACTION_NOT_ALLOWED);
+        _;
+    }
 
+    
+    /**
+    * @dev change primary ownership
+    * @param _which The address to which is new owner address
+    */
+    function changePrimaryOwner(address _which) public onlyOwner notZeroAddress(_which) notOwnAddress(_which) returns(bool){
+        emit OwnershipTransferred("PRIMARY_OWNER",primaryOwner,_which);
+        primaryOwner = _which;
+        return true;
+    }
 
-  /**
-   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
-   * account.
-   */
-  constructor() public {
-    owner = msg.sender;
-  }
+    
+    /**
+    * @dev change system address
+    * @param _which The address to which is new system address
+    */
+    function changeSystemAddress(address _which) public onlyOwner notZeroAddress(_which) notOwnAddress(_which) returns(bool){
+        emit OwnershipTransferred("SYSTEM_ADDRESS",systemAddress,_which);
+        systemAddress = _which;
+        return true;
+    }
+  
+  
 
-
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
-
-
-  /**
-   * @dev Allows the current owner to transfer control of the contract to a newOwner.
-   * @param newOwner The address to transfer ownership to.
-   */
-  function transferOwnership(address newOwner) public onlyOwner {
-    require(newOwner != address(0));
-    emit OwnershipTransferred(owner, newOwner);
-    owner = newOwner;
-  }
 
 }

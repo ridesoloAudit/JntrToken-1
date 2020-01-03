@@ -1,142 +1,128 @@
 pragma solidity 0.5.9;
-import './StandardToken.sol';
-import './MultiOwnable.sol';
+import './TokenUtils.sol';
+import './ERC20.sol';
+
 
 contract WhiteList{
     //whiteList functions
     function isWhiteListed(address _who) public view returns(bool);
+    
     function canSentToken(address _which)public view returns (bool);
+    
     function canReciveToken(address _which)public view returns (bool);
+    
     function isTransferAllowed(address _who)public view returns(bool);
 }
 
-contract Utils {
-    //utils functions
-    function getByPassedAddress(address _which) public view returns(bool);
-    function isHoldbackDaysOver(address _which,uint256 tokenSaleStartDate) public view returns(bool);
-    function getTokenHoldBackDays(address _which) public view returns(uint256);
-    function getTokenPrice(address _which) public view returns(uint256);
-    function getTokenSwappable(address _which) public view returns(bool);
-    function getSecurityCheck(address _which) public view returns(bool);
-    function getSwapOn(address _which) public view returns(bool);
-    function getTokenMaturityDays(address _which) public view returns(uint256);
-    function getPreAuction(address _which) public view returns(bool);
-    function getTokenHolderWallet(address _which) public view returns(address);
-    function getMintingFeesPercent(address _which) public view returns(uint256);
-    function getReturnToken(address _which) public view returns(address);
-    function getTokenIsMature(address _which,uint256 tokenSaleStartDate) public view returns(bool);
+contract Tokens is TokenUtils{
     
-}
-
-contract Token {
-    function swapForToken(address _to,uint256 _value) public returns (bool);
-}
-
-contract JNTR is StandardToken,MultiOwnable{
+    string public name;
     
-    uint256 public tokenSaleStartDate = 0;
- 
-
-    Utils util ;
-    WhiteList whiteList;
+    string public symbol;
     
-    string constant ERR_WHITELIST_ADDRESS = "ERR_WHITELIST_ADDRESS";
-    string constant ERR_TRANSFER_BLOCKED = "ERR_TRANSFER_BLOCKED";
-    string constant ERR_TRANSFER_NOT_ALLOWED = "ERR_TRANSFER_NOT_ALLOWED";
-    string constant ERR_HOLDBACK_DAYS = "ERR_HOLDBACK_DAYS";
-    string constant ERR_TOKEN_SWAP_OFF = "ERR_TOKEN_SWAP_OFF";
-    string constant ERR_TOKEN_SWAP_FAILED = "ERR_TOKEN_SWAP_FAILED";
-    string constant ERR_TOKEN_MATURE = "ERR_TOKEN_MATURE";
+    uint256 public totalSupply = 0;
     
+    uint public constant decimals = 18;
     
+    mapping(address => uint256) balances;
     
+    mapping (address => mapping (address => uint256)) allowed;
     
-    constructor(
-                string memory _name,
+    event TokneMinted(address indexed _to,uint256 value);
+    event TokenBurned(address indexed _from,uint256 value);
+    event TransferFrom(address indexed spender,address indexed _from,address indexed _to);
+    event WalletForcedSwaped(address indexed _whom,uint256 _burnedTokens,uint256 _thisTokenPrice,
+                             address indexed _returnToken,uint256 _returnTokenAmount,uint256 _returnTokenPrice,
+                             uint256 _time);
+    
+    constructor(string memory _name,
                 string memory _symbol,
+                address _systemAddress,
+                address payable _tokenHolderWallet,
                 uint256 reserveSupply,
                 uint256 holdBackSupply,
-                address _tokenHolderWallet,
-                address _systemAddress,
-                address _whiteListAddress,
-                address _utilAddress) public MultiOwnable(_systemAddress){
-        name = _name;
-        symbol = _symbol;
+                address _whiteListAddress) public  TokenUtils(_name,_symbol,
+                                                            _systemAddress,
+                                                            _tokenHolderWallet,
+                                                            _whiteListAddress){
+                                                    
         reserveSupply = reserveSupply * 10 ** uint256(decimals);
         holdBackSupply = holdBackSupply * 10 ** uint256(decimals);
-        _mint(address(this),reserveSupply);
-        _mint(_tokenHolderWallet,holdBackSupply);
-        tokenSaleStartDate = now;
-        util = Utils(_utilAddress);
-        whiteList = WhiteList(_whiteListAddress);
-    }
-    
-    
-    function setWhiteListAddress(address _whiteListAddress) public onlySystem returns (bool){
-        whiteList = WhiteList(_whiteListAddress);
-        return true;
-    }
-    function setUtilsAddress(address _utilAddress) public onlySystem returns (bool){
-        util = Utils(_utilAddress);
-        return true;
+        
+        if(reserveSupply > 0)
+            _mint(address(this),reserveSupply);
+            
+        if(holdBackSupply > 0 )
+            _mint(_tokenHolderWallet,holdBackSupply);
+        
+
     }
 
     
-    function swapForToken(address _to,uint256 _value) public returns (bool){
-        require(util.getTokenSwappable(msg.sender),ERR_TRANSFER_NOT_ALLOWED);
-        uint256 swapTokenPrice = util.getTokenPrice(msg.sender);
-        uint256 tokenPrice = util.getTokenPrice(address(this));
-        uint256 _assignToken = safeDiv(safeMul(_value,swapTokenPrice),tokenPrice);
-        if(balances[address(this)] >= _assignToken){
-          return _transfer(address(this),_to,_assignToken);
-        }else{
-            uint256 _remaningToken = safeSub(_assignToken,balances[address(this)]);
-            _transfer(address(this),_to,balances[address(this)]);
-            return _mint(_to,_remaningToken);
-        }
-
-    }
-    
+    /**
+       * @dev checkBeforeTransfer is validation for trnasfer
+    */
     function checkBeforeTransfer(address _from,address _to) internal view returns(bool){
-        bool isByPassed = util.getByPassedAddress(msg.sender);
-        bool securityCheck = util.getSecurityCheck(address(this));
-        if(securityCheck && !isByPassed){
-           require(whiteList.isWhiteListed(_from) && whiteList.canSentToken(_from),ERR_WHITELIST_ADDRESS);
-           require(whiteList.isWhiteListed(_to) && whiteList.canReciveToken(_to),ERR_WHITELIST_ADDRESS); 
-           require(whiteList.isTransferAllowed(_to),ERR_TRANSFER_NOT_ALLOWED);
-           require(util.isHoldbackDaysOver(address(this),tokenSaleStartDate),ERR_HOLDBACK_DAYS);
-           require(!util.getTokenIsMature(address(this),tokenSaleStartDate),ERR_TOKEN_MATURE);
+        if(securityCheck && by_passed_address[msg.sender] == false){
+            require(WhiteList(whiteListAddress).isWhiteListed(_from) && WhiteList(whiteListAddress).isWhiteListed(_to),ERR_TRANSFER_CHECK_WHITELIST);
+            require(WhiteList(whiteListAddress).canSentToken(_from)&& WhiteList(whiteListAddress).canReciveToken(_to),ERR_TRANSFER_CHECK_BLOCK_WALLET);
+            require(WhiteList(whiteListAddress).isTransferAllowed(_to) && !isTokenMature() && isHoldbackDaysOver(),ERR_ACTION_NOT_ALLOWED);
         }
         return true;
     }
     
+
     function transfer(address _to, uint256 _value) public returns (bool ok) {
-        bool reciveSwap = util.getTokenSwappable(_to);
-        if(reciveSwap){
-            bool swapOn = util.getSwapOn(address(this));
-            require(swapOn,ERR_TOKEN_SWAP_OFF);
-            bool is_trasnferd = _transfer(msg.sender,address(this),_value);
-            require(is_trasnferd,ERR_TOKEN_SWAP_FAILED);
-            Token token = Token(_to);
-            return token.swapForToken(msg.sender,_value);
-        }
         require(checkBeforeTransfer(msg.sender,_to));
         return super.transfer(_to,_value);
     }
     
+    
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
         require(checkBeforeTransfer(_from,_to));
-        
         return super.transferFrom(_from,_to,_value);
     }
-
+    
+    
+    /**
+       * @dev Transfer tokens from this address to another
+       * @param _to address The address which you want to transfer to
+       * @param _value uint256 the amount of tokens to be transferred
+    */
+    function assignToken(address _to,uint256 _value) public onlyOwner returns (bool){
+        return _transfer(address(this),_to,_value);
+    }
+    
+    /**
+       * @dev TransferFrom tokens from this address to another  
+       * we need this function bcz forceswap with other tokens
+       * @param _spender address The address which you want to transfer to
+       * @param _value uint256 the amount of tokens to be transferred
+    */
+    function allowTrasferFrom(address _spender,uint256 _value) public onlyOwner returns (bool){
+        allowed[address(this)][_spender] = _value;
+        emit Approval(address(this), _spender,0,_value);
+        return true;
+    }
+    
+    /**
+       * @dev burn token from this address
+       * @param _value uint256 the amount of tokens to be burned
+    */
+    function burn(uint256 _value) public onlyOwner returns (bool){
+        return _burn(address(this),_value);
+    }
+    
+    
+    /**
+       * @dev mint more tokens 
+       * @param _to address The address which you want to mint token
+       * @param _value uint256 the amount of tokens to be mint
+    */
     function mint(address _to,uint256 _value) public onlySystem returns (bool){
-        bool preAuction = util.getPreAuction(address(this));
         if(preAuction){
-           uint256 mintingFeesPercent =  util.getMintingFeesPercent(address(this));
            uint256 mintingFee = safeDiv(safeMul(_value,mintingFeesPercent),100);
-           address tokenHolderWallet = util.getTokenHolderWallet(address(this));
-           require(tokenHolderWallet != address(0),ERR_ADDRESS_NOT_VALID);
+           require(tokenHolderWallet != address(0),ERR_ZERO_ADDRESS);
             _mint(_to,_value);
             return _mint(tokenHolderWallet,mintingFee);
         }else{
@@ -145,42 +131,44 @@ contract JNTR is StandardToken,MultiOwnable{
 
     }
     
-    function assignToken(address _to,uint256 _value) public onlyOwner returns (bool){
-        if(balances[address(this)] >= _value){
-           return _transfer(address(this),_to,_value);
-        }else{
-            uint256 _remaningToken = safeSub(_value,balances[address(this)]);
-            _transfer(address(this),_to,balances[address(this)]);
-            return _mint(_to,_remaningToken); 
-        }
-    }
     
-    function burn(uint256 _value) public onlyOwner returns (bool){
-        return _burn(address(this),_value);
-    }
     
     //In case if there is other tokens into contract
-    function returnTokens(address _tokenAddress,address _to,uint256 _value)public onlyOwner returns (bool){
-        require(_tokenAddress != address(this));
+    function returnTokens(address _tokenAddress,address _to,uint256 _value) public notThisAddress(_tokenAddress) onlyOwner returns (bool){
         ERC20 tokens = ERC20(_tokenAddress);
         return tokens.transfer(_to,_value);
     }
     
-    function forceSwapWallet(address[] memory _from) public onlyOwner returns (bool){
-        address returnToken = util.getReturnToken(address(this));
-        require(returnToken != address(0),ERR_ADDRESS_NOT_VALID);
-        for(uint temp_x = 0 ; temp_x < _from.length ; temp_x++){
-            address _address = _from[temp_x];
-            bool is_burned = _burn(_address,balances[_address]);
-            require(is_burned,ERR_TOKEN_SWAP_FAILED);
-            Token token = Token(returnToken);
-            bool token_swapped = token.swapForToken(_address,balances[_address]);
-            require(token_swapped,ERR_TOKEN_SWAP_FAILED);
-        }
-
+    
+    /**
+       * @dev forceswap wallet with other equivalent tokens 
+       * @param _to address which is swaped
+       * @param _returnToken which user get behalf of this tokens
+       * @param _thisTokenPrice current token price 
+       * @param _from from which wallet token transferred
+       * @param _returnAmount return token amount
+       * @param _returnTokenPrice return token Price 
+       * @return return true if successful
+    */
+    function forceSwapWallet(address _to,
+                            address _returnToken,
+                            uint256 _thisTokenPrice,
+                            address _from,
+                            uint256 _returnAmount,
+                            uint256 _returnTokenPrice) public notThisAddress(_returnToken)  notZeroAddress(_to) notZeroAddress(_returnToken) notZeroValue(_returnAmount) onlyOwner returns (bool){
+        
+        require(ERC20(_returnToken).transferFrom(_from,_to,_returnAmount));
+        uint256 _balance = balances[_to];
+        require(_burn(_to,balances[_to]),ERR_TOKEN_SWAP_FAILED);
+        emit WalletForcedSwaped(_to,_balance,_thisTokenPrice,_returnToken,_returnAmount,_returnTokenPrice,now);
+        return true;
     }
-  
-    function () external payable{
-       revert();
+    
+    function() external notZeroValue(msg.value) notZeroValue(tokenPerEth) payable{
+       uint256 transferToken = safeMul(msg.value,tokenPerEth);
+       require(WhiteList(whiteListAddress).isWhiteListed(msg.sender) 
+        && WhiteList(whiteListAddress).canReciveToken(msg.sender),ERR_ACTION_NOT_ALLOWED);
+       require(_transfer(address(this),msg.sender,transferToken));
     }
+    
 }
