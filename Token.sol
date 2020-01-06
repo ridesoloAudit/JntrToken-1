@@ -16,21 +16,7 @@ contract WhiteList{
 
 contract Tokens is TokenUtils{
     
-    string public name;
-    
-    string public symbol;
-    
-    uint256 public totalSupply = 0;
-    
-    uint public constant decimals = 18;
-    
-    mapping(address => uint256) balances;
-    
-    mapping (address => mapping (address => uint256)) allowed;
-    
-    event TokneMinted(address indexed _to,uint256 value);
-    event TokenBurned(address indexed _from,uint256 value);
-    event TransferFrom(address indexed spender,address indexed _from,address indexed _to);
+   
     event WalletForcedSwaped(address indexed _whom,uint256 _burnedTokens,uint256 _thisTokenPrice,
                              address indexed _returnToken,uint256 _returnTokenAmount,uint256 _returnTokenPrice,
                              uint256 _time);
@@ -54,8 +40,7 @@ contract Tokens is TokenUtils{
             
         if(holdBackSupply > 0 )
             _mint(_tokenHolderWallet,holdBackSupply);
-        
-
+    
     }
 
     
