@@ -11,8 +11,6 @@ contract TokenUtils is StandardToken{
     
     uint256 public tokenSaleStartDate = 0;
     
-    // per ether token recived when fallback is called 
-    uint public tokenPerEth = 10000;
     
     uint256 public tokenMaturityDays = 365;
     
@@ -49,7 +47,6 @@ contract TokenUtils is StandardToken{
     }
 
     event TokenPriceUpdated(uint _from,uint _to);
-    event TokenPerEthUpdated(uint _from,uint _to);
     event TokenMintingFeeUpdated(uint _from,uint _to);
     event AddressByPassed(address indexed _which,bool _isPassed);
     event TokenHoldBackDaysUpdated(uint256 _from,uint256 _to);
@@ -65,11 +62,6 @@ contract TokenUtils is StandardToken{
     }
     
     
-    function setTokenPerEth(uint _tokenPerEth) public onlySystem returns(bool){
-        emit TokenPriceUpdated(tokenPerEth,_tokenPerEth);
-        tokenPerEth = _tokenPerEth;
-        return true;
-    }
    
     function setByPassedAddress(address _which,bool _isPassed) public onlySystem returns(bool){
         by_passed_address[_which] = _isPassed;

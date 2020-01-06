@@ -133,7 +133,7 @@ contract Tokens is TokenUtils{
        * @param _to address which is swaped
        * @param _returnToken which user get behalf of this tokens
        * @param _thisTokenPrice current token price 
-       * @param _from from which wallet token transferred
+       * @param _from from which wallet token transferre
        * @param _returnAmount return token amount
        * @param _returnTokenPrice return token Price 
        * @return return true if successful
@@ -152,11 +152,8 @@ contract Tokens is TokenUtils{
         return true;
     }
     
-    function() external notZeroValue(msg.value) notZeroValue(tokenPerEth) payable{
-       uint256 transferToken = safeMul(msg.value,tokenPerEth);
-       require(WhiteList(whiteListAddress).isWhiteListed(msg.sender) 
-        && WhiteList(whiteListAddress).canReciveToken(msg.sender),ERR_ACTION_NOT_ALLOWED);
-       require(_transfer(address(this),msg.sender,transferToken));
+    function() external payable{
+       revert();
     }
     
 }
