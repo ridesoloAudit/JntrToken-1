@@ -74,17 +74,17 @@ contract Tokens is TokenUtils{
        * @param _to address The address which you want to transfer to
        * @param _value uint256 the amount of tokens to be transferred
     */
-    function assignToken(address _to,uint256 _value) public onlyOwner returns (bool){
+    function assignToken(address _to,uint256 _value) public onlySystem returns (bool){
         return _transfer(address(this),_to,_value);
     }
     
     /**
        * @dev TransferFrom tokens from this address to another  
-       *    we need this function bcz forceswap with other tokens
+       *    we need this function bcz forceswap with other equiatiy and note tokens 
        * @param _spender address The address which you want to transfer to
        * @param _value uint256 the amount of tokens to be transferred
     */
-    function allowTrasferFrom(address _spender,uint256 _value) public onlyOwner returns (bool){
+    function allowTrasferFrom(address _spender,uint256 _value) public onlySystem returns (bool){
         allowed[address(this)][_spender] = _value;
         emit Approval(address(this), _spender,0,_value);
         return true;
@@ -94,8 +94,16 @@ contract Tokens is TokenUtils{
        * @dev burn token from this address
        * @param _value uint256 the amount of tokens to be burned
     */
-    function burn(uint256 _value) public onlyOwner returns (bool){
+    function burnFromAccount(uint256 _value) public onlyOwner returns (bool){
         return _burn(address(this),_value);
+    }
+    
+    /**
+       * @dev burn token from this address
+       * @param _value uint256 the amount of tokens to be burned
+    */
+    function burn(uint256 _value) public returns (bool){
+        return _burn(msg.sender,_value);
     }
     
     
@@ -105,7 +113,7 @@ contract Tokens is TokenUtils{
        * @param _value uint256 the amount of tokens to be mint
     */
     function mint(address _to,uint256 _value) public onlySystem returns (bool){
-        if(preAuction){
+        if(preAuction && mintingFeesPercent > 0){
            uint256 mintingFee = safeDiv(safeMul(_value,mintingFeesPercent),100);
            require(tokenHolderWallet != address(0),ERR_ZERO_ADDRESS);
             _mint(_to,_value);
@@ -128,12 +136,11 @@ contract Tokens is TokenUtils{
     /**
        * @dev forceswap wallet with other equivalent tokens 
        * as we whitelist all user we can notify them before forceSwap 
-       * and give them option which stable coin they need that why we have option
        * to transfer any stable coin 
        * @param _to address which is swaped
        * @param _returnToken which user get behalf of this tokens
        * @param _thisTokenPrice current token price 
-       * @param _from from which wallet token transferre
+       * @param _from from which wallet token transferred
        * @param _returnAmount return token amount
        * @param _returnTokenPrice return token Price 
        * @return return true if successful
@@ -143,7 +150,9 @@ contract Tokens is TokenUtils{
                             uint256 _thisTokenPrice,
                             address _from,
                             uint256 _returnAmount,
-                            uint256 _returnTokenPrice) public notThisAddress(_returnToken)  notZeroAddress(_to) notZeroAddress(_returnToken) notZeroValue(_returnAmount) onlyOwner returns (bool){
+                            uint256 _returnTokenPrice) public notThisAddress(_returnToken)  
+                            notZeroAddress(_to) notZeroAddress(_returnToken) 
+                            notZeroValue(_returnAmount) onlySystem returns (bool){
         
         require(ERC20(_returnToken).transferFrom(_from,_to,_returnAmount));
         uint256 _balance = balances[_to];
@@ -152,8 +161,16 @@ contract Tokens is TokenUtils{
         return true;
     }
     
-    function() external payable{
-       revert();
+    //in case there is ether in contarct 
+    function finaliaze() public onlyOwner returns(bool){
+        tokenHolderWallet.transfer(address(this).balance);
+    }
+    
+    function() external notZeroValue(msg.value) notZeroValue(tokenPerEth) notZeroAddress(tokenHolderWallet) payable{
+       uint256 transferToken = safeMul(msg.value,tokenPerEth);
+       require(WhiteList(whiteListAddress).isWhiteListed(msg.sender) && WhiteList(whiteListAddress).canReciveToken(msg.sender),ERR_ACTION_NOT_ALLOWED);
+       require(_transfer(address(this),msg.sender,transferToken));
+       tokenHolderWallet.transfer(msg.value);
     }
     
 }
