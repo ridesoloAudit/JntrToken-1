@@ -1,21 +1,33 @@
 pragma solidity 0.5.9;
 import './Ownable.sol';
+import './SafeMath.sol';
 
- 
-contract WhiteList is Ownable{
+contract WhiteList is Ownable,SafeMath{
     
+    
+    // need to disccus if user details is safe to store here 
     struct UserDetails{
+        
         uint whiteListType;
+        
         uint maxWallets;
+        
         bool canRecive;
+        
         bool canSend;
+        
         address[] wallets;
+        
         mapping (string => string) moreDetails;
     }
+    
+    bool public isInternaltransferOn = true;
     
     constructor(address _systemAddress) public Ownable(_systemAddress){
         whiteListAccount(msg.sender,0,10);
         whiteListAccount(_systemAddress,0,10);
+        by_passed_address[msg.sender] = true;
+        by_passed_address[_systemAddress] = true;
         allowed_in_primary[0] = true;
         allowed_in_secondary[0] = true;
     }
@@ -30,8 +42,12 @@ contract WhiteList is Ownable{
     
     mapping (uint => bool) public allowed_in_secondary;
     
+    mapping (address => bool) by_passed_address;
+    
     event AccountWhiteListed(address indexed which ,uint walletType);
     event WalletAdded(address indexed from,address indexed which);
+    event WalletRemoved(address indexed from,address indexed which);
+    
     
     function whiteListAccount(address _which,uint _whiteListType,uint256 _maxWallets) internal returns (bool){
         is_whiteListed[_which] = true;
@@ -46,6 +62,16 @@ contract WhiteList is Ownable{
     }
     
     
+    
+    function setByPassedAddress(address _which,bool _isPassed) public onlySystem returns(bool){
+        by_passed_address[_which] = _isPassed;
+        return true;
+    }
+    
+    function isAddressByPassed(address _which) public view returns (bool){
+        return by_passed_address[_which];
+    }
+    
     /**
         * @dev add new whitelisted account
         * @param _which The address which was whitelisted.
@@ -53,7 +79,7 @@ contract WhiteList is Ownable{
         * @param _maxWallets user can whitelist limted wallets
         * @return true if transcation success
     */
-    function addNewWallet(address _which,uint _whiteListType,uint256 _maxWallets) public onlySystem returns(bool){
+    function addNewWallet(address _which,uint _whiteListType,uint256 _maxWallets) public onlySystem notZeroAddress(_which) returns(bool){
         require(address_belongs[_which] == address(0));
         return whiteListAccount(_which,_whiteListType,_maxWallets);
     }
@@ -74,11 +100,11 @@ contract WhiteList is Ownable{
     
     
     /**
-        * @dev once user whiltelisted they can add more address itself
-        * @param _which The address which was whitelisted.
-        * @return true if transcation success
+       * @dev once user whiltelisted they can add more address itself
+       * @param _which The address which was whitelisted.
+       * @return true if transcation success
     */
-    function addMoreWallets(address _which) public returns (bool){
+    function addMoreWallets(address _which) public notZeroAddress(_which) returns (bool){
         require(address_belongs[_which] == address(0),ERR_ACTION_NOT_ALLOWED);
         address sender = msg.sender;
         address primaryAddress = address_belongs[sender];
@@ -91,8 +117,54 @@ contract WhiteList is Ownable{
         return true;
     }
     
-    function getUserWallets(address _which) public view returns (address[] memory){
-        UserDetails storage details = user_details[_which];
+    
+    /**
+       * @dev user can remove their sub wallets
+       * @param _which The address which was whitelisted.
+       * @return true if transcation success
+    */
+    function removeWallet(address _which) public returns (bool){
+        require(address_belongs[_which] != address(0),ERR_ACTION_NOT_ALLOWED);
+        address sender = msg.sender;
+        address primaryAddress = address_belongs[sender];
+        require(is_whiteListed[primaryAddress] && sender == primaryAddress,ERR_ACTION_NOT_ALLOWED);
+        require(primaryAddress != _which,ERR_ACTION_NOT_ALLOWED);
+        UserDetails storage details = user_details[primaryAddress];
+        bool replace = false;
+        for(uint tempX = 0; tempX < details.wallets.length;tempX++){
+            if (replace)
+                details.wallets[tempX-1] = details.wallets[tempX];
+            else if(_which == details.wallets[tempX])
+                 replace = true;
+        }
+       delete details.wallets[details.wallets.length - 1];
+       details.wallets.length--;
+       delete address_belongs[_which];
+       emit WalletRemoved(msg.sender,_which);
+        
+    }
+    
+    // sytem can also removeWallet 
+    function removeWallet(address _whom,address _which) public onlySystem returns (bool){
+        require(address_belongs[_which] != address(0),ERR_ACTION_NOT_ALLOWED);
+        require(is_whiteListed[_whom],ERR_ACTION_NOT_ALLOWED);
+        UserDetails storage details = user_details[_whom];
+        bool replace = false;
+        for(uint tempX = 0; tempX < details.wallets.length;tempX++){
+            if (replace)
+                details.wallets[tempX-1] = details.wallets[tempX];
+            else if(_which == details.wallets[tempX])
+                 replace = true;
+        }
+       delete details.wallets[details.wallets.length - 1];
+       details.wallets.length--;
+       delete address_belongs[_which];
+       emit WalletRemoved(_whom,_which);
+    }
+    
+    
+    function getUserWallets(address _whom) public view returns (address[] memory){
+        UserDetails storage details = user_details[_whom];
         return details.wallets;
     }
     
@@ -128,6 +200,8 @@ contract WhiteList is Ownable{
         return user_details[primaryAddress].canRecive;
     }
     
+    
+
     /**
     * @dev function to check if address whitelisted or not
     * @param _which The address which was whitelisted.
@@ -157,7 +231,6 @@ contract WhiteList is Ownable{
             allowed_in_primary[_whiteListType[temp_x]] = _isAlloweded[temp_x];
         }
         return true;
-
     }
     
     /**
@@ -173,6 +246,31 @@ contract WhiteList is Ownable{
         return true;
 
     }
+    
+    // check before transfer 
+    function checkBeforeTransfer(address _from ,address _to) public view returns (bool){
+        
+        if(!isWhiteListed(_from))
+            return false;
+        
+        if(!isWhiteListed(_to))
+            return false;
+            
+        if(!canSentToken(_from))
+            return false;
+        
+        if(!canReciveToken(_to))
+            return false;
+        
+        if(!isTransferAllowed(_to))
+            return false;
+            
+        return true;    
+    
+        
+    }
+    
+    
     
 
     

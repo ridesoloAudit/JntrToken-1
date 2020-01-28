@@ -5,8 +5,10 @@ contract Constant{
     
     string constant ERR_CONTRACT_SELF_ADDRESS = "ERR_CONTRACT_SELF_ADDRESS";
     string constant ERR_ZERO_ADDRESS = "ERR_ZERO_ADDRESS";
+    
     string constant ERR_ACTION_NOT_ALLOWED  = "ERR_ACTION_NOT_ALLOWED";
     string constant ERR_MAXIMUM_WALLET_LIMIT = "ERR_MAXIMUM_WALLET_LIMIT";
+    
     string constant ERR_NOT_ENOUGH_BALANCE = "ERR_NOT_ENOUGH_BALANCE";
     string constant ERR_VALUE_IS_ZERO = "ERR_VALUE_IS_ZERO";
     
