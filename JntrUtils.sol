@@ -6,7 +6,7 @@ contract JntrUtils is StandardToken{
     
     // actulprice * 1000000
     // basePrice is set $0.01 
-    uint public tokenPrice = 1000;
+    uint public tokenPrice = 10000;
     // price decimal 
     uint public priceDecimal = 6;
 
