@@ -73,7 +73,7 @@ contract Jntr is JntrUtils{
     
 
     function swapForTokens(uint256 _tokenPrice,address _to,uint256 _value) public returns(bool){
-        require(msg.sender == jntrXAddress || msg.sender == jntrEAddress ,ERR_ACTION_NOT_ALLOWED);
+        require(msg.sender == etnAddress || msg.sender == stockAddress ,ERR_ACTION_NOT_ALLOWED);
         
         uint256 _assignToken = safeDiv(safeMul(_value,_tokenPrice),tokenPrice);
         
@@ -87,7 +87,7 @@ contract Jntr is JntrUtils{
     }
     
     function swapToken(address swapble,uint256 _value) public notZeroValue(_value) notZeroAddress(swapble) returns (bool){
-        require(isDirectSwap && (swapble == jntrXAddress || swapble == jntrEAddress));
+        require(isDirectSwap && (swapble == etnAddress || swapble == stockAddress));
         require(_transfer(msg.sender,address(this),_value));
         require(Token(swapble).swapForTokens(tokenPrice,msg.sender,_value));
         return true;

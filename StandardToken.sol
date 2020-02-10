@@ -25,6 +25,8 @@ contract StandardToken is ERC20,SafeMath,Ownable{
     constructor(string memory _name,
                 string memory _symbol,
                 address _systemAddress) public Ownable(_systemAddress){
+                    
+        require(bytes(_name).length > 0 && bytes(_symbol).length > 0);
         name = _name;
         symbol = _symbol;
     }

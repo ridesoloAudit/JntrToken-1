@@ -1,5 +1,5 @@
 pragma solidity 0.5.9;
-import './JntrXUtils.sol';
+import './JntrEtnUtils.sol';
 
 contract WhiteList{
     function isWhiteListed(address _who) public view returns(bool);
@@ -12,12 +12,12 @@ contract Token {
 }
 
 
-contract JntrX is JntrXUtils{
+contract JntrEtn is JntrEtnUtils{
 
      constructor(string memory _name,string memory _symbol,
                 address _systemAddress,address payable _tokenHolderWallet,
                 address _whiteListAddress,
-                uint256 reserveSupply,uint256 holdBackSupply) public JntrXUtils(_name,_symbol,_systemAddress,_tokenHolderWallet,_whiteListAddress){
+                uint256 reserveSupply,uint256 holdBackSupply) public JntrEtnUtils(_name,_symbol,_systemAddress,_tokenHolderWallet,_whiteListAddress){
                     
                 reserveSupply = reserveSupply * 10 ** uint256(decimals);
                 holdBackSupply = holdBackSupply * 10 ** uint256(decimals);
@@ -63,11 +63,12 @@ contract JntrX is JntrXUtils{
         return true;
     }
     
+    
    function swapForTokens(uint256 _tokenPrice,address _to,uint256 _value) public returns(bool){
-        require(msg.sender == jntrAddress || msg.sender == jntrEAddress ,ERR_ACTION_NOT_ALLOWED);
+        require(msg.sender == jntrAddress || msg.sender == stockAddress ,ERR_ACTION_NOT_ALLOWED);
         
         uint256 _assignToken = safeDiv(safeMul(_value,_tokenPrice),tokenPrice);
-
+        
         if(balances[address(this)] >= _assignToken){
           return _transfer(address(this),_to,_assignToken);
         }else{
@@ -78,7 +79,7 @@ contract JntrX is JntrXUtils{
     }
     
     function swapToken(address swapble,uint256 _value) public notZeroValue(_value) notZeroAddress(swapble) returns (bool){
-        require(isDirectSwap && (swapble == jntrAddress || swapble == jntrEAddress));
+        require(isDirectSwap && (swapble == jntrAddress || swapble == stockAddress));
         require(_burn(msg.sender,_value));
         require(Token(swapble).swapForTokens(tokenPrice,msg.sender,_value));
         return true;

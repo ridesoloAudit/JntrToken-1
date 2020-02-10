@@ -17,6 +17,7 @@ contract Constant{
     string constant ERR_TOKEN_SWAP_FAILED = "ERR_TOKEN_SWAP_FAILED";
     
     
+    
     modifier notOwnAddress(address _which) {
         require(msg.sender != _which,ERR_ACTION_NOT_ALLOWED);
         _;

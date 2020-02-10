@@ -6,7 +6,7 @@ contract JntrUtils is StandardToken{
     
     // actulprice * 1000000
     // basePrice is set $0.01 
-    uint public tokenPrice = 1000;
+    uint public tokenPrice = 10000;
     // price decimal 
     uint public priceDecimal = 6;
 
@@ -22,9 +22,9 @@ contract JntrUtils is StandardToken{
     
     address public whiteListAddress = address(0);
     
-    address public jntrXAddress = address(0);
+    address public etnAddress = address(0);
     
-    address public jntrEAddress = address(0);
+    address public stockAddress = address(0);
     
     bool public isDirectSwap = true;
 
@@ -46,13 +46,13 @@ contract JntrUtils is StandardToken{
     
   
   
-    function setJntrXAddress(address _jntrXAddress) public notZeroAddress(_jntrXAddress) onlySystem returns(bool){
-        jntrXAddress = _jntrXAddress;
+    function setEtnAddress(address _etnAddress) public notZeroAddress(_etnAddress) onlySystem returns(bool){
+        etnAddress = _etnAddress;
         return true;
     }
     
-    function setJntrEAddress(address _jntrEAddress) public notZeroAddress(_jntrEAddress) onlySystem returns(bool){
-        jntrEAddress = _jntrEAddress;
+    function setStockAddress(address _stockAddress) public notZeroAddress(_stockAddress) onlySystem returns(bool){
+        stockAddress = _stockAddress;
         return true;
     }
     

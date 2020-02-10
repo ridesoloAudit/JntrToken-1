@@ -2,7 +2,7 @@ pragma solidity 0.5.9;
 import './StandardToken.sol';
 
 
-contract JntrXUtils is StandardToken{
+contract JntrStockUtils is StandardToken{
     
     // actulprice * 1000000
     // basePrice is set $1 
@@ -26,7 +26,7 @@ contract JntrXUtils is StandardToken{
     
     address public jntrAddress = address(0);
     
-    address public jntrEAddress = address(0);
+    address public etnAddress = address(0);
     
     bool public isDirectSwap = false;
 
@@ -52,8 +52,8 @@ contract JntrXUtils is StandardToken{
         return true;
     }
     
-    function setJntrEAddress(address _jntrEAddress) public onlySystem notZeroAddress(_jntrEAddress) returns(bool){
-        jntrEAddress = _jntrEAddress;
+    function setEtnAddress(address _etnAddress) public notZeroAddress(_etnAddress) onlySystem returns(bool){
+        etnAddress = _etnAddress;
         return true;
     }
     
