@@ -7,7 +7,7 @@ pragma solidity 0.5.9;
    * see https://github.com/ethereum/EIPs/issues/20
   */
  
-contract ERC20  {
+contract ERC20 {
     
   uint256 public totalSupply;
   

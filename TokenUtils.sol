@@ -2,18 +2,17 @@ pragma solidity 0.5.9;
 import './StandardToken.sol';
 
 
-contract JntrStockUtils is StandardToken{
+contract TokenUtils is StandardToken{
     
     // actulprice * 1000000
-    // basePrice is set $1 
-    uint public tokenPrice = 1000000;
-    
+    // basePrice is set $0.01 
+    uint public tokenPrice = 10000;
     // price decimal 
     uint public priceDecimal = 6;
 
     uint256 public tokenSaleStartDate = 0;
     
-    uint256 public tokenMaturityDays = 3560;
+    uint256 public tokenMaturityDays = 3650;
     
     uint public tokenHoldBackDays = 90;
     
@@ -23,14 +22,12 @@ contract JntrStockUtils is StandardToken{
     
     address public whiteListAddress = address(0);
     
+    address public etnTokenAddress = address(0);
     
-    address public jntrAddress = address(0);
+    address public stockTokenAddress = address(0);
     
-    address public etnAddress = address(0);
-    
-    bool public isDirectSwap = false;
+    bool public isDirectSwap = true;
 
-    
     constructor(string memory _name,
                 string memory _symbol,
                 address _systemAddress,
@@ -40,30 +37,31 @@ contract JntrStockUtils is StandardToken{
                     whiteListAddress = _whiteListAddress;
                     tokenSaleStartDate = now;
                 }
-                
+              
+              
     function setTokenPrice(uint _tokenPrice) public onlySystem returns(bool){
         tokenPrice = _tokenPrice;
         return true;
     }
     
-    
-    function setJntrAddress(address _jntrAddress) public onlySystem notZeroAddress(_jntrAddress) returns(bool){
-        jntrAddress = _jntrAddress;
+  
+  
+    function setEtnTokenAddress(address _etnTokenAddress) public notZeroAddress(_etnTokenAddress) onlySystem returns(bool){
+        etnTokenAddress = _etnTokenAddress;
         return true;
     }
     
-    function setEtnAddress(address _etnAddress) public notZeroAddress(_etnAddress) onlySystem returns(bool){
-        etnAddress = _etnAddress;
+    function setStockTokenAddress(address _stockTokenAddress) public notZeroAddress(_stockTokenAddress) onlySystem returns(bool){
+        stockTokenAddress = _stockTokenAddress;
         return true;
     }
-    
     
     function setIsDirectSwap(bool _isDirectSwap) public onlySystem returns(bool){
         isDirectSwap = _isDirectSwap;
         return true;
     }
     
-
+  
     function setSecurityCheck(bool _securityCheck) public onlySystem returns(bool){
         securityCheck = _securityCheck;
         return true;
@@ -104,13 +102,10 @@ contract JntrStockUtils is StandardToken{
     
     function isHoldbackDaysOver() public view returns(bool){
         uint256 tempDay = safeMul(86400,tokenHoldBackDays);
-        
         uint256 holdBackDaysEndDay = safeAdd(tempDay,tokenSaleStartDate);
-        
         if(now >= holdBackDaysEndDay){
             return true;
         }
-        
         return false;
     }
     

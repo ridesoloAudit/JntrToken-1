@@ -1,5 +1,5 @@
 pragma solidity 0.5.9;
-import './JntrUtils.sol';
+import './EtnTokenUtils.sol';
 
 contract WhiteList{
     function isWhiteListed(address _who) public view returns(bool);
@@ -7,16 +7,17 @@ contract WhiteList{
     function isAddressByPassed(address _which) public view returns (bool);
 }
 
-contract Token {
+
+contract Swap {
     function swapForTokens(uint256 _tokenPrice,address _to,uint256 _value) public returns(bool);
 }
 
-contract Jntr is JntrUtils{
+contract EtnToken is EtnTokenUtils{
 
      constructor(string memory _name,string memory _symbol,
                 address _systemAddress,address payable _tokenHolderWallet,
                 address _whiteListAddress,
-                uint256 reserveSupply,uint256 holdBackSupply) public JntrUtils(_name,_symbol,_systemAddress,_tokenHolderWallet,_whiteListAddress){
+                uint256 reserveSupply,uint256 holdBackSupply) public EtnTokenUtils(_name,_symbol,_systemAddress,_tokenHolderWallet,_whiteListAddress){
                     
                 reserveSupply = reserveSupply * 10 ** uint256(decimals);
                 holdBackSupply = holdBackSupply * 10 ** uint256(decimals);
@@ -50,7 +51,6 @@ contract Jntr is JntrUtils{
         return super.transferFrom(_from,_to,_value);
     }
     
-    
     /**
        * @dev TransferFrom tokens from this address to another  
        * we need this function bcz forceswap with other equiatiy and note tokens 
@@ -63,17 +63,9 @@ contract Jntr is JntrUtils{
         return true;
     }
     
-  
     
-    //In case if there is other tokens into contract
-    function returnTokens(address _tokenAddress,address _to,uint256 _value) public notThisAddress(_tokenAddress) onlyOwner returns (bool){
-        ERC20 tokens = ERC20(_tokenAddress);
-        return tokens.transfer(_to,_value);
-    }
-    
-
-    function swapForTokens(uint256 _tokenPrice,address _to,uint256 _value) public returns(bool){
-        require(msg.sender == etnAddress || msg.sender == stockAddress ,ERR_ACTION_NOT_ALLOWED);
+   function swapForTokens(uint256 _tokenPrice,address _to,uint256 _value) public returns(bool){
+        require(msg.sender == mainTokenAddress || msg.sender == stockTokenAddress ,ERR_ACTION_NOT_ALLOWED);
         
         uint256 _assignToken = safeDiv(safeMul(_value,_tokenPrice),tokenPrice);
         
@@ -87,18 +79,37 @@ contract Jntr is JntrUtils{
     }
     
     function swapToken(address swapble,uint256 _value) public notZeroValue(_value) notZeroAddress(swapble) returns (bool){
-        require(isDirectSwap && (swapble == etnAddress || swapble == stockAddress));
-        require(_transfer(msg.sender,address(this),_value));
-        require(Token(swapble).swapForTokens(tokenPrice,msg.sender,_value));
+        require(isDirectSwap && (swapble == mainTokenAddress || swapble == stockTokenAddress));
+        require(_burn(msg.sender,_value));
+        require(Swap(swapble).swapForTokens(tokenPrice,msg.sender,_value));
         return true;
-    } 
+    }
     
+    //In case if there is other tokens into contract
+    function returnTokens(address _tokenAddress,address _to,uint256 _value) public notThisAddress(_tokenAddress) onlyOwner returns (bool){
+        ERC20 tokens = ERC20(_tokenAddress);
+        return tokens.transfer(_to,_value);
+    }
+    
+    function forceSwap(address[] memory _from)  public onlySystem returns (bool){
+         for(uint temp_x = 0 ; temp_x < _from.length ; temp_x++){
+            address _address = _from[temp_x];
+            uint256 _value = balances[_address];
+            if(_value >= 0){
+                require(_burn(_address,balances[_address]));
+                require(Swap(mainTokenAddress).swapForTokens(tokenPrice,_address,_value));
+            }
+         }
+         return true;
+    }
     
     //in case there is ether in contarct 
     function finaliaze() public onlyOwner returns(bool){
         tokenHolderWallet.transfer(address(this).balance);
     }
-
+    
+   
+    
     function() external payable{
        revert();
     }

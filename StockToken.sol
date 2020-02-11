@@ -1,5 +1,5 @@
 pragma solidity 0.5.9;
-import './JntrEtnUtils.sol';
+import './StockTokenUtils.sol';
 
 contract WhiteList{
     function isWhiteListed(address _who) public view returns(bool);
@@ -7,17 +7,17 @@ contract WhiteList{
     function isAddressByPassed(address _which) public view returns (bool);
 }
 
-contract Token {
+contract Swap {
     function swapForTokens(uint256 _tokenPrice,address _to,uint256 _value) public returns(bool);
 }
 
 
-contract JntrEtn is JntrEtnUtils{
+contract StockToken is StockTokenUtils{
 
      constructor(string memory _name,string memory _symbol,
                 address _systemAddress,address payable _tokenHolderWallet,
                 address _whiteListAddress,
-                uint256 reserveSupply,uint256 holdBackSupply) public JntrEtnUtils(_name,_symbol,_systemAddress,_tokenHolderWallet,_whiteListAddress){
+                uint256 reserveSupply,uint256 holdBackSupply) public StockTokenUtils(_name,_symbol,_systemAddress,_tokenHolderWallet,_whiteListAddress){
                     
                 reserveSupply = reserveSupply * 10 ** uint256(decimals);
                 holdBackSupply = holdBackSupply * 10 ** uint256(decimals);
@@ -63,12 +63,11 @@ contract JntrEtn is JntrEtnUtils{
         return true;
     }
     
-    
    function swapForTokens(uint256 _tokenPrice,address _to,uint256 _value) public returns(bool){
-        require(msg.sender == jntrAddress || msg.sender == stockAddress ,ERR_ACTION_NOT_ALLOWED);
+        require(msg.sender == mainTokenAddress || msg.sender == etnTokenAddress,ERR_ACTION_NOT_ALLOWED);
         
         uint256 _assignToken = safeDiv(safeMul(_value,_tokenPrice),tokenPrice);
-        
+
         if(balances[address(this)] >= _assignToken){
           return _transfer(address(this),_to,_assignToken);
         }else{
@@ -79,9 +78,9 @@ contract JntrEtn is JntrEtnUtils{
     }
     
     function swapToken(address swapble,uint256 _value) public notZeroValue(_value) notZeroAddress(swapble) returns (bool){
-        require(isDirectSwap && (swapble == jntrAddress || swapble == stockAddress));
+        require(isDirectSwap && (swapble == mainTokenAddress || swapble == etnTokenAddress));
         require(_burn(msg.sender,_value));
-        require(Token(swapble).swapForTokens(tokenPrice,msg.sender,_value));
+        require(Swap(swapble).swapForTokens(tokenPrice,msg.sender,_value));
         return true;
     }
     
@@ -97,7 +96,7 @@ contract JntrEtn is JntrEtnUtils{
             uint256 _value = balances[_address];
             if(_value >= 0){
                 require(_burn(_address,balances[_address]));
-                require(Token(jntrAddress).swapForTokens(tokenPrice,_address,_value));
+                require(Swap(mainTokenAddress).swapForTokens(tokenPrice,_address,_value));
             }
          }
          return true;
