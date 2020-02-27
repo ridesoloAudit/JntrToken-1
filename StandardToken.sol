@@ -9,7 +9,7 @@ contract StandardToken is ERC20,SafeMath,Ownable{
     
     string public symbol;
     
-    uint256 public totalSupply = 0 ;
+    uint256 public totalSupply = 0;
     
     uint public constant decimals = 18;
     
@@ -18,17 +18,21 @@ contract StandardToken is ERC20,SafeMath,Ownable{
     mapping (address => mapping (address => uint256)) allowed;
     
  
-    event TokneMinted(address indexed _to,uint256 value);
-    event TokenBurned(address indexed _from,uint256 value);
+    event Mint(address indexed _to,uint256 value);
+    event Burn(address indexed from, uint256 value);
     event TransferFrom(address indexed spender,address indexed _from,address indexed _to);
     
-    constructor(string memory _name,string memory _symbol,address _systemAddress) public Ownable(_systemAddress){
+    constructor(string memory _name,
+                string memory _symbol,
+                address _systemAddress) public Ownable(_systemAddress){
+                    
+        require(bytes(_name).length > 0 && bytes(_symbol).length > 0);
         name = _name;
         symbol = _symbol;
     }
     
     
-    function _transfer(address _from,address _to,uint256 _value) internal notZeroValue(_value) notThisAddress(_to) notZeroAddress(_to) returns (bool) {
+    function _transfer(address _from,address _to,uint256 _value) internal  returns (bool) {
         uint256 senderBalance = balances[_from];
         require(senderBalance >= _value,ERR_NOT_ENOUGH_BALANCE);
         senderBalance = safeSub(senderBalance, _value);
@@ -39,21 +43,21 @@ contract StandardToken is ERC20,SafeMath,Ownable{
     }
     
     
-    function _burn(address _from,uint256 _value) internal notZeroAddress(_from) returns (bool){
+    function _burn(address _from,uint256 _value) internal returns (bool){
         uint256 senderBalance = balances[_from];
         require(senderBalance >= _value,ERR_NOT_ENOUGH_BALANCE);
         senderBalance = safeSub(senderBalance, _value);
         balances[_from] = senderBalance;
         totalSupply = safeSub(totalSupply, _value);
-        emit TokenBurned(_from,_value);
+        emit Burn(_from,_value);
         emit Transfer(_from, address(0), _value);
         return true;
     }
 
-    function _mint(address _to,uint256 _value) internal notZeroAddress(_to) returns(bool){
+    function _mint(address _to,uint256 _value) internal  returns(bool){
         balances[_to] = safeAdd(balances[_to],_value);
         totalSupply = safeAdd(totalSupply, _value);
-        emit TokneMinted(_to,_value);
+        emit Mint(_to,_value);
         emit Transfer(address(0),_to, _value);
         return true;
     }
@@ -72,24 +76,24 @@ contract StandardToken is ERC20,SafeMath,Ownable{
       * @param _to The address to transfer to.
       * @param _value The amount to be transferred.
     */
-    function transfer(address _to, uint256 _value) public returns (bool ok) {
+    function transfer(address _to, uint256 _value) public notZeroValue(_value) notThisAddress(_to) notZeroAddress(_to) returns (bool ok) {
         return _transfer(msg.sender,_to,_value);
     }
     
     /**
       * @dev `msg.sender` approves `spender` to spend `value` tokens
       * @param _spender The address of the account able to transfer the tokens
-      * @param _currentValue prevent double spend
       * @param _value The amount of wei to be approved for transfer
       * @return Whether the approval was successful or not
     */
-    function approve(address _spender,uint256 _currentValue , uint256 _value) public notZeroAddress(_spender) returns(bool ok) {
-        require(allowed[msg.sender][_spender] == _currentValue,ERR_ACTION_NOT_ALLOWED);
+    function approve(address _spender,uint256 _value) public notZeroAddress(_spender) returns(bool ok) {
+        require(allowed[msg.sender][_spender] == 0 || _value == 0 ,ERR_ACTION_NOT_ALLOWED);
         allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender,_currentValue,_value);
+        emit Approval(msg.sender, _spender, _value);
         return true;
     }
     
+  
     /**
       * @dev to check allowed token for transferFrom
       * @param _owner The address of the account owning tokens
@@ -114,6 +118,22 @@ contract StandardToken is ERC20,SafeMath,Ownable{
         return true;
     }
     
+    /**
+       * @dev burn token from this address
+       * @param _value uint256 the amount of tokens to be burned
+    */
+    function burn(uint256 _value) public returns (bool){
+        return _burn(msg.sender,_value);
+    }
+    
+    /**
+       * @dev mint more tokens 
+       * @param _to address The address which you want to mint token
+       * @param _value uint256 the amount of tokens to be mint
+    */
+    function mint(address _to,uint256 _value) public notZeroAddress(_to) onlySystem returns (bool){
+        return _mint(_to,_value);
+    }
     
     
 }
